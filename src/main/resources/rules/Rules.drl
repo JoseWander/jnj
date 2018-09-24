@@ -1,0 +1,229 @@
+package rules
+
+import com.ipt.model.*;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
+
+function int difDias(Date date1, Date date2) {
+
+	long dif = date2.getTime()-date1.getTime();
+	return (int) TimeUnit.MILLISECONDS.toDays(dif);
+}
+
+function int domingoFeriado(Date date) {
+
+	Calendar c = Calendar.getInstance();
+	c.setTime(date);
+			
+	if (c.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY)
+		return 1;
+
+	// an novo
+	if (c.get(Calendar.DAY_OF_MONTH) == 1
+			&& c.get(Calendar.MONTH) == Calendar.JANUARY)
+		return 1;
+
+	// tiradentes
+	if (c.get(Calendar.DAY_OF_MONTH) == 21
+			&& c.get(Calendar.MONTH) == Calendar.APRIL)
+		return 1;
+
+	// trab
+	if (c.get(Calendar.DAY_OF_MONTH) == 1
+			&& c.get(Calendar.MONTH) == Calendar.MAY)
+		return 1;
+
+	// nossa senhora
+	if (c.get(Calendar.DAY_OF_MONTH) == 12
+			&& c.get(Calendar.MONTH) == Calendar.OCTOBER)
+		return 1;
+
+	// finados
+	if (c.get(Calendar.DAY_OF_MONTH) == 2
+			&& c.get(Calendar.MONTH) == Calendar.NOVEMBER)
+		return 1;
+
+	// republica
+	if (c.get(Calendar.DAY_OF_MONTH) == 15
+			&& c.get(Calendar.MONTH) == Calendar.NOVEMBER)
+		return 1;
+
+	// natal
+	if (c.get(Calendar.DAY_OF_MONTH) == 25
+			&& c.get(Calendar.MONTH) == Calendar.DECEMBER)
+		return 1;
+
+	return 0;
+}
+
+//baseado em histórico
+
+rule "excessoNumSinistros" lock-on-active
+    when
+        s : Sinistro(txSinistroPessoa>=0.19 || txSinistroFamilia>=0.26)
+    then
+    	//System.out.println("rule excessoNumSinistros para " + s.getCodDocumento()  );
+    	modify ( s )  { 
+    		setScore(s.getScore() + 1) 
+    	}
+end
+
+
+rule "valMediaProcedimento" lock-on-active
+    when
+        s : Sinistro(valItem<=valMediaProcedimento)
+    then
+    	//System.out.println("rule valMediaProcedimento para " + s.getCodDocumento() );
+    	modify ( s )  { 
+    		setScore(s.getScore() + 1) 
+    	}
+end	
+
+
+/*
+rule "codPlano" lock-on-active
+    when
+        s : Sinistro(getBeneficiario().getCodPlano()==301 || getBeneficiario().getCodPlano()==9674 )
+    then
+    	//System.out.println("rule codProduto para " + s.getCodDocumento() );
+    	modify ( s )  { 
+    		setScore(s.getScore() + 1) 
+    	}
+end	
+		
+rule "codServico" lock-on-active
+    when
+        s : Sinistro(codServico==10014L || codServico==25535013L )
+    then
+    	//System.out.println("rule codServico para " + s.getCodDocumento() );
+    	modify ( s )  { 
+    		setScore(s.getScore() + 1) 
+    	}
+end	
+*/
+
+rule "probalidadeParcelamento" lock-on-active
+    when
+    	 s : Sinistro(
+    	 (txSinistroPessoa>=0.19 || txSinistroFamilia>=0.26)
+    	&& (getBeneficiario().getCodPlano()==301 || getBeneficiario().getCodPlano()==9674 )
+    	&& (codServico==10014L || codServico==25535013L )
+        && (valItem<=valMediaProcedimento)
+        )
+    then
+    	//System.out.println("rule probalidadeParcelamento para " + s.getCodDocumento() );
+    	modify ( s )  { 
+    		setProbalidadeParcelamento(true),
+    		setScore(s.getScore() + 5) 
+    	}
+end	
+
+//heurística
+
+rule "numCrmExecInativo" lock-on-active
+    when
+        s : Sinistro(getMedico().getStatusCrm()=="APOSENTADO"
+        || getMedico().getStatusCrm()=="CANCELADO"
+        || getMedico().getStatusCrm()=="CASSADO"
+        || getMedico().getStatusCrm()=="FALECIDO"
+        )
+    then
+    	//System.out.println("rule numCrmExecInativo para " + s.getCodDocumento()   );
+    	modify ( s )  { 
+    		setScore(s.getScore() + 1) 
+    	}
+end	
+
+rule "difDias" lock-on-active
+    when
+        s : Sinistro( difDias(getBeneficiario().getDatAdesaoPlano(), datAtendimento) <=90)
+    then
+    	//System.out.println("rule difDias para " + s.getCodDocumento()  );
+    	modify ( s )  { 
+    		setScore(s.getScore() + 1) 
+    	}
+end	
+
+rule "consulta domingoFeriado" lock-on-active
+    when
+        s : Sinistro(domingoFeriado(datAtendimento)==1 && codServico==10014L)
+    then
+    	//System.out.println("rule consulta domingoFeriado para " + s.getCodDocumento()  );
+    	modify ( s )  { 
+    		setScore(s.getScore() + 1) 
+    	}
+end	
+
+rule "difEstados crm" lock-on-active
+    when
+    	s : Sinistro(
+    		(getBeneficiario().getSigUfCorresp() != null && getMedico().getSigUfCrmExec() != null)
+    		&& (getBeneficiario().getSigUfCorresp() != "" && getMedico().getSigUfCrmExec() != "")
+        	&& (getBeneficiario().getSigUfCorresp() != getMedico().getSigUfCrmExec())
+        )
+    then
+    	//System.out.println("rule difEstados para " + s.getCodDocumento() + " "  + s.getBeneficiario().getSigUfCorresp() + "-" +  s.getMedico().getSigUfCrmExec() );
+    	modify ( s )  { 
+    		setScore(s.getScore() + 1) 
+    	}
+end
+
+/*
+rule "codEmpresa" lock-on-active
+    when
+        s : Sinistro(getBeneficiario().getCodEmpresa()=="36875" || getBeneficiario().getCodEmpresa()=="81704")
+    then
+    	//System.out.println("rule codEmpresa para " + s.getCodDocumento()   );
+    	modify ( s )  { 
+    		setScore(s.getScore() + 1) 
+    	}
+end	
+
+rule "cnpjCpfPrestador" lock-on-active
+    when
+        s : Sinistro(getPrestador().getCnpjCpfPrestador()==9893114810L
+        || getPrestador().getCnpjCpfPrestador()==13524320000192L
+        || getPrestador().getCnpjCpfPrestador()==29491463845L)
+    then
+    	//System.out.println("rule cnpjCpfPrestador para " + s.getCodDocumento()   );
+    	modify ( s )  { 
+    		setScore(s.getScore() + 1) 
+    	}
+end	
+
+
+rule "getCodFamiliarBenef" lock-on-active
+    when
+        s : Sinistro(getBeneficiario().getCodFamiliarBenef()=="000008490" || getBeneficiario().getCodFamiliarBenef()=="368750020")
+    then
+    	//System.out.println("rule getCodFamiliarBenef para " + s.getCodDocumento()   );
+    	modify ( s )  { 
+    		setScore(s.getScore() + 1) 
+    	}
+end	
+*/
+
+
+//calc probabilidade
+
+rule "probalidadeMedia" salience 10   
+    when 
+ 	  	 s: Sinistro(score >=4 && score <7)
+    then
+    	//System.out.println("rule probalidadeMedia para " + s.getCodDocumento() + " score " + s.getScore());
+		s.setProbalidadeFraude("MEDIA") ;
+end	
+
+rule "probalidadeAlta"  salience 10 
+    when 
+ 	  	 s: Sinistro(score >=7)
+    then
+    	//System.out.println("rule probalidadeAlta para " + s.getCodDocumento() + " score " + s.getScore());
+		s.setProbalidadeFraude("ALTA") ;
+end	
+
+
+
+
+		
