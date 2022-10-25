@@ -1,6 +1,6 @@
 package rules
 
-import com.ipt.model.*;
+import com.jnj.mvc.entity.Sinistro;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
@@ -80,34 +80,11 @@ rule "valMediaProcedimento" lock-on-active
     	}
 end	
 
-
-/*
-rule "codPlano" lock-on-active
-    when
-        s : Sinistro(getBeneficiario().getCodPlano()==301 || getBeneficiario().getCodPlano()==9674 )
-    then
-    	//System.out.println("rule codProduto para " + s.getCodDocumento() );
-    	modify ( s )  { 
-    		setScore(s.getScore() + 1) 
-    	}
-end	
-		
-rule "codServico" lock-on-active
-    when
-        s : Sinistro(codServico==10014L || codServico==25535013L )
-    then
-    	//System.out.println("rule codServico para " + s.getCodDocumento() );
-    	modify ( s )  { 
-    		setScore(s.getScore() + 1) 
-    	}
-end	
-*/
-
 rule "probalidadeParcelamento" lock-on-active
     when
     	 s : Sinistro(
     	 (txSinistroPessoa>=0.19 || txSinistroFamilia>=0.26)
-    	&& (getBeneficiario().getCodPlano()==301 || getBeneficiario().getCodPlano()==9674 )
+    	&& (codPlano==301 || codPlano==9674 )
     	&& (codServico==10014L || codServico==25535013L )
         && (valItem<=valMediaProcedimento)
         )
@@ -123,10 +100,10 @@ end
 
 rule "numCrmExecInativo" lock-on-active
     when
-        s : Sinistro(getMedico().getStatusCrm()=="APOSENTADO"
-        || getMedico().getStatusCrm()=="CANCELADO"
-        || getMedico().getStatusCrm()=="CASSADO"
-        || getMedico().getStatusCrm()=="FALECIDO"
+        s : Sinistro(statusCrm=="APOSENTADO"
+        || statusCrm=="CANCELADO"
+        || statusCrm=="CASSADO"
+        || statusCrm=="FALECIDO"
         )
     then
     	//System.out.println("rule numCrmExecInativo para " + s.getCodDocumento()   );
@@ -137,7 +114,7 @@ end
 
 rule "difDias" lock-on-active
     when
-        s : Sinistro( difDias(getBeneficiario().getDatAdesaoPlano(), datAtendimento) <=90)
+        s : Sinistro( difDias(datAdesaoPlano, datAtendimento) <=90)
     then
     	//System.out.println("rule difDias para " + s.getCodDocumento()  );
     	modify ( s )  { 
@@ -158,9 +135,9 @@ end
 rule "difEstados crm" lock-on-active
     when
     	s : Sinistro(
-    		(getBeneficiario().getSigUfCorresp() != null && getMedico().getSigUfCrmExec() != null)
-    		&& (getBeneficiario().getSigUfCorresp() != "" && getMedico().getSigUfCrmExec() != "")
-        	&& (getBeneficiario().getSigUfCorresp() != getMedico().getSigUfCrmExec())
+    		(sigUfCorresp != null && sigUfCrmExec != null)
+    		&& (sigUfCorresp != "" && sigUfCrmExec != "")
+        	&& (sigUfCorresp != sigUfCrmExec)
         )
     then
     	//System.out.println("rule difEstados para " + s.getCodDocumento() + " "  + s.getBeneficiario().getSigUfCorresp() + "-" +  s.getMedico().getSigUfCrmExec() );
@@ -169,41 +146,6 @@ rule "difEstados crm" lock-on-active
     	}
 end
 
-/*
-rule "codEmpresa" lock-on-active
-    when
-        s : Sinistro(getBeneficiario().getCodEmpresa()=="36875" || getBeneficiario().getCodEmpresa()=="81704")
-    then
-    	//System.out.println("rule codEmpresa para " + s.getCodDocumento()   );
-    	modify ( s )  { 
-    		setScore(s.getScore() + 1) 
-    	}
-end	
-
-rule "cnpjCpfPrestador" lock-on-active
-    when
-        s : Sinistro(getPrestador().getCnpjCpfPrestador()==9893114810L
-        || getPrestador().getCnpjCpfPrestador()==13524320000192L
-        || getPrestador().getCnpjCpfPrestador()==29491463845L)
-    then
-    	//System.out.println("rule cnpjCpfPrestador para " + s.getCodDocumento()   );
-    	modify ( s )  { 
-    		setScore(s.getScore() + 1) 
-    	}
-end	
-
-
-rule "getCodFamiliarBenef" lock-on-active
-    when
-        s : Sinistro(getBeneficiario().getCodFamiliarBenef()=="000008490" || getBeneficiario().getCodFamiliarBenef()=="368750020")
-    then
-    	//System.out.println("rule getCodFamiliarBenef para " + s.getCodDocumento()   );
-    	modify ( s )  { 
-    		setScore(s.getScore() + 1) 
-    	}
-end	
-*/
-
 
 //calc probabilidade
 
@@ -211,7 +153,7 @@ rule "probalidadeMedia" salience 10
     when 
  	  	 s: Sinistro(score >=4 && score <7)
     then
-    	//System.out.println("rule probalidadeMedia para " + s.getCodDocumento() + " score " + s.getScore());
+    	System.out.println("rule probalidadeMedia para " + s.getCodDocumento() + " score " + s.getScore());
 		s.setProbalidadeFraude("MEDIA") ;
 end	
 
@@ -219,7 +161,7 @@ rule "probalidadeAlta"  salience 10
     when 
  	  	 s: Sinistro(score >=7)
     then
-    	//System.out.println("rule probalidadeAlta para " + s.getCodDocumento() + " score " + s.getScore());
+    	System.out.println("rule probalidadeAlta para " + s.getCodDocumento() + " score " + s.getScore());
 		s.setProbalidadeFraude("ALTA") ;
 end	
 

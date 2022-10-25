@@ -1,0 +1,63 @@
+<html>
+<head>
+  <title>SpringMVC + Thymeleaf + Bootstrap 4 Table Example</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"/>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+  
+</head>
+<body>
+
+      <h2>Lista de Sinistros</h2>
+      
+	<div>
+		<table id="customerTable" class="table table-striped table-hover">
+			<thead>
+				<tr>
+					<th></th>
+					<th>Cod. Sinistro</th>
+					<th>Probalidade Fraude</th>
+					<th>Tx. Sinistro Pessoa</th>
+					<th>Tx. Sinistro Familia</th>
+					<th>Val. Apresentado</th>
+					<th>Val. Medio Procedimento</th>
+					<th>Cod. Plano</th>
+					<th>Cod. Servico</th>
+					<th>Status CRM</th>
+					<th>Dat. Adesão Plano</th>
+					<th>Dat. Atendimento</th>
+					<th>UF Benef.</th>
+					<th>UF CRM</th>
+					
+				</tr>
+			</thead>
+	<tbody>
+		 <tr th:each="sinistro : ${sinistros}"
+		 th:style="${sinistro.flgFraude} == true ? 'color: red' : 'color: gray'">			
+			<td>
+				    <a th:href="@{/sinistros/calculaProbalidadeFraude?(codSinistro=${sinistro.codSinistro})}">Calcular Probalidade Fraude</a>
+			
+			</td>
+	        <td th:text="${sinistro.codSinistro}">codSinistro</td>
+			<td th:text="${sinistro.probalidadeFraude}">probalidadeFraude</td>
+			<td th:text="${sinistro.txSinistroPessoa}">txSinistroPessoa</td>
+			<td th:text="${sinistro.txSinistroFamilia}">txSinistroFamilia</td>
+			<td th:text="${sinistro.valItem}">valItem</td>
+			<td th:text="${sinistro.valMediaProcedimento}">valMediaProcedimento</td>
+			<td th:text="${sinistro.codPlano}">codPlano</td>
+			<td th:text="${sinistro.codServico}">codServico</td>
+			<td th:text="${sinistro.statusCrm}">statusCrm</td>
+			<td th:text="${#dates.format(sinistro.datAdesaoPlano, 'dd/MM/YYYY')}"></td>
+			<td th:text="${#dates.format(sinistro.datAtendimento, 'dd/MM/YYYY')}"></td>
+			<td th:text="${sinistro.sigUfCorresp}">sigUfCorresp</td>
+			<td th:text="${sinistro.sigUfCrmExec}">sigUfCrmExec</td>
+
+	    </tr>
+	</tbody>
+   		</table>
+	</div>
+</body>
+</html>
